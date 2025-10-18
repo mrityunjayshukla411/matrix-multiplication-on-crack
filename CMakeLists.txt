@@ -9,7 +9,12 @@ find_package(CUDAToolkit REQUIRED)
 
 add_executable(matmul_benchmark
     src/main.cpp
+    src/kernels/NaiveKernel.cu  
 )
 
+target_compile_options(matmul_benchmark PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Werror>
+    $<$<COMPILE_LANGUAGE:CUDA>:--compiler-options=-Wall>
+)
 target_include_directories(matmul_benchmark PRIVATE include)
 target_link_libraries(matmul_benchmark CUDA::cudart)

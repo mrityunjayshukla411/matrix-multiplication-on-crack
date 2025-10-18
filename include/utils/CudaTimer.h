@@ -1,6 +1,6 @@
 #pragma once
 #include<cuda_runtime.h>
-#include <CudaUtils.h>
+#include <utils/CudaUtils.h>
 
 class CudaTimer {
     private:

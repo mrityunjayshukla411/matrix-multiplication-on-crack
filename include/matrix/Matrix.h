@@ -8,7 +8,8 @@ class Matrix
 {
 public:
     size_t m_rows, m_cols;
-    T *m_h_data T *m_d_data
+    T *m_h_data; 
+    T *m_d_data;
 
     Matrix(size_t rows, size_t cols) : m_rows(rows), m_cols(cols), m_h_data(nullptr), m_d_data(nullptr)
     {
@@ -30,8 +31,8 @@ public:
 
     // Move operations (allow transfer of ownership)
     Matrix(Matrix &&other) noexcept
-        : rows(other.m_rows), cols(other.m_cols),
-          h_data(other.m_h_data), d_data(other.m_d_data)
+        : m_rows(other.m_rows), m_cols(other.m_cols),
+          m_h_data(other.m_h_data), m_d_data(other.m_d_data)
     {
         other.m_h_data = nullptr;
         other.m_d_data = nullptr;
