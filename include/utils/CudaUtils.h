@@ -28,10 +28,11 @@ inline void printDeviceInfo()
         cudaDeviceProp prop;
         CUDA_CHECK(cudaGetDeviceProperties_v2(&prop, i));
 
-        std::cout << "Device" << i << ":" << prop.name << "\n";
-        std::cout << "Compute Capability:" << prop.major << "." << prop.minor << "\n";
-        std::cout << "Global Memory:" << prop.totalGlobalMem / (1024 * 1024) << "MB\n";
-        std::cout << "Shared Memory per Block" << prop.sharedMemPerBlock / (1024) << "\n";
-        std::cout << "Max Threads per Block" << prop.maxThreadsPerBlock << "\n\n";
+        std::cout << "Device" << i << ": " << prop.name << "\n";
+        std::cout << "Compute Capability: " << prop.major << "." << prop.minor << "\n";
+        std::cout << "Global Memory: " << prop.totalGlobalMem / (1024 * 1024) << "MB\n";
+        std::cout << "Shared Memory per Block: " << prop.sharedMemPerBlock / (1024) << "\n";
+        std::cout << "Max Threads per Block: " << prop.maxThreadsPerBlock << "\n";
+        std::cout << "Max Blocks per SM: " << prop.maxBlocksPerMultiProcessor << "\n\n";
     }
 }   
