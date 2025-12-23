@@ -7,6 +7,7 @@
 #include "kernels/CoalescedKernel.h"
 #include "kernels/UncoalescedKernel.h"
 #include "kernels/SharedMemCachingKernel.h"
+#include "kernels/Tiling1DKernel.h"
 #include "utils/CudaTimer.h"
 #include "utils/CudaUtils.h"
 #include "utils/Colors.h"
@@ -85,6 +86,9 @@ void runComparison(size_t M, size_t N, size_t K)
               << results.back().kernel_name << " completed" << std::endl;
 
     results.push_back(benchmarkKernel<T, SharedMemCachingKernel>(A, B, C, M, N, K));
+    std::cout << "  " << Colors::GREEN << "✓ " << Colors::RESET
+              << results.back().kernel_name << " completed" << std::endl;
+    results.push_back(benchmarkKernel<T, Tiling1DKernel>(A, B, C, M, N, K));
     std::cout << "  " << Colors::GREEN << "✓ " << Colors::RESET
               << results.back().kernel_name << " completed" << std::endl;
 

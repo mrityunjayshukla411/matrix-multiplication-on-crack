@@ -5,6 +5,7 @@
 #include "kernels/CoalescedKernel.h"
 #include "kernels/UncoalescedKernel.h"
 #include "kernels/SharedMemCachingKernel.h"
+#include "kernels/Tiling1DKernel.h"
 #include "utils/CudaUtils.h"
 #include "utils/CpuMatMul.h"
 #include "utils/TestUtils.h"
@@ -97,6 +98,15 @@ void runAllTests() {
     for (const auto& tc : test_cases) {
         total++;
         bool result = testKernel<T, SharedMemCachingKernel>(tc.name, tc.M, tc.N, tc.K);
+        TestUtils<T>::printTestResult(tc.name, result);
+        if (result) passed++;
+    }
+
+    std::cout << "\n" << Colors::BOLD_YELLOW << "--- Testing Tiling1DKernel ---"
+              << Colors::RESET << std::endl;
+    for (const auto& tc : test_cases) {
+        total++;
+        bool result = testKernel<T, Tiling1DKernel>(tc.name, tc.M, tc.N, tc.K);
         TestUtils<T>::printTestResult(tc.name, result);
         if (result) passed++;
     }
