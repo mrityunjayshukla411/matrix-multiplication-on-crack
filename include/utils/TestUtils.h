@@ -1,3 +1,11 @@
+/**
+ * @file TestUtils.h
+ * @brief Matrix comparison and test result printing utilities.
+ *
+ * TestUtils<T> provides element-wise comparison of two matrices using a
+ * combined absolute + relative tolerance check — the standard approach for
+ * validating floating-point GPU results against a CPU reference.
+ */
 #pragma once
 #include "matrix/Matrix.h"
 #include "utils/Colors.h"
@@ -5,10 +13,33 @@
 #include <iostream>
 #include <iomanip>
 
+/**
+ * @brief Stateless test utilities for matrix correctness checking.
+ *
+ * @tparam T Element type (float, double, int).
+ */
 template<typename T>
 class TestUtils {
 public:
-    // Compare two matrices with a relative tolerance
+    /**
+     * @brief Element-wise comparison of two matrices with mixed tolerance.
+     *
+     * An element pair (a, b) is considered erroneous if:
+     *   |a - b| > abs_tolerance  AND  |a - b| > rel_tolerance * max(|a|, |b|)
+     *
+     * Using both tolerances avoids false positives near zero (where a purely
+     * relative check becomes overly strict) while still catching large relative
+     * errors away from zero.
+     *
+     * Compares host buffers (m_h_data). Call cudaMemcpy DeviceToHost before
+     * comparing GPU results.
+     *
+     * @param A             Reference (CPU) matrix.
+     * @param B             Computed (GPU) matrix to validate.
+     * @param rel_tolerance Relative error threshold. Default 1e-5.
+     * @param abs_tolerance Absolute error threshold. Default 1e-8.
+     * @return true if all elements pass the tolerance check, false otherwise.
+     */
     static bool compareMatrices(const Matrix<T>& A, const Matrix<T>& B,
                                 T rel_tolerance = 1e-5, T abs_tolerance = 1e-8) {
         if (A.m_rows != B.m_rows || A.m_cols != B.m_cols) {
@@ -57,7 +88,12 @@ public:
         return true;
     }
 
-    // Print test result with color
+    /**
+     * @brief Prints a colored [PASS] or [FAIL] line for a named test case.
+     *
+     * @param test_name Human-readable test description.
+     * @param passed    Result of the test.
+     */
     static void printTestResult(const char* test_name, bool passed) {
         if (passed) {
             std::cout << "[" << Colors::BOLD_GREEN << "PASS" << Colors::RESET << "] "

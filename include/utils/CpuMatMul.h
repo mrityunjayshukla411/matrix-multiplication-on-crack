@@ -1,12 +1,35 @@
+/**
+ * @file CpuMatMul.h
+ * @brief CPU reference implementation of matrix multiplication for correctness testing.
+ *
+ * Provides a naïve O(M·N·K) triple-loop implementation that operates entirely on
+ * host (pinned) memory. Used in matmul_test to produce a ground-truth result against
+ * which all GPU kernels are compared via TestUtils::compareMatrices().
+ */
 #pragma once
 #include "matrix/Matrix.h"
 #include <cstring>
 
+/**
+ * @brief Stateless CPU matrix multiplier.
+ *
+ * @tparam T Element type (float, double, int).
+ */
 template<typename T>
 class CpuMatMul {
 public:
-    // CPU reference implementation for matrix multiplication
-    // C = A * B where A is MxK, B is KxN, C is MxN
+    /**
+     * @brief Computes C = A × B using a naïve triple-nested loop on the host.
+     *
+     * Operates on the host buffers (m_h_data) of each matrix. No GPU calls are made.
+     * The result matrix C is zeroed before accumulation.
+     *
+     * Time complexity: O(M·N·K) — suitable only for small/medium matrices in tests.
+     *
+     * @param A  Input matrix of shape M×K (host buffer must be initialized).
+     * @param B  Input matrix of shape K×N (host buffer must be initialized).
+     * @param C  Output matrix of shape M×N; host buffer is overwritten.
+     */
     static void compute(const Matrix<T>& A, const Matrix<T>& B, Matrix<T>& C) {
         size_t M = A.m_rows;
         size_t K = A.m_cols;

@@ -1,3 +1,20 @@
+/**
+ * @file main.cpp
+ * @brief Benchmark driver: compares all GEMM kernel implementations across matrix sizes.
+ *
+ * Runs a progressive set of square and rectangular matrix multiplication benchmarks,
+ * printing a formatted performance table (kernel name, average time, GFLOPS, speedup
+ * relative to the slowest kernel) for each problem size. The fastest kernel is
+ * highlighted with a lightning bolt symbol.
+ *
+ * Benchmark methodology:
+ *   - 3 warm-up runs (to populate GPU caches and JIT-compile any deferred code).
+ *   - 10 timed runs using CudaTimer (CUDA events for GPU-side timing accuracy).
+ *   - Average time and GFLOPS are computed from the 10 timed runs.
+ *   - GFLOPS formula: (2 * M * N * K) / (avg_time_ms * 1e6)
+ *     The factor of 2 accounts for one multiply and one add per element of the
+ *     inner product (2 FLOPs per K iteration).
+ */
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -8,22 +25,46 @@
 #include "kernels/UncoalescedKernel.h"
 #include "kernels/SharedMemCachingKernel.h"
 #include "kernels/Tiling1DKernel.h"
+#include "kernels/Tiling1DKernelAsync.h"
+#include "kernels/Tiling2DKernel.h"
 #include "utils/CudaTimer.h"
 #include "utils/CudaUtils.h"
 #include "utils/Colors.h"
 
+/**
+ * @brief Stores the result of benchmarking one kernel variant.
+ */
 struct BenchmarkResult {
-    std::string kernel_name;
-    float time_ms;
-    double gflops;
+    std::string kernel_name; ///< Human-readable name from KernelType::name().
+    float time_ms;           ///< Average execution time in milliseconds.
+    double gflops;           ///< Effective throughput in GFLOPS.
 };
 
+/**
+ * @brief Benchmarks a single kernel type with warm-up and averaged timing.
+ *
+ * Runs the kernel 3 times for warm-up (to avoid cold-start effects), then
+ * times it 10 times using CUDA events and returns the average.
+ *
+ * GFLOPS = (2 * M * N * K) / (avg_time_ms * 1e6).
+ *
+ * @tparam T          Element type (e.g., float).
+ * @tparam KernelType Template class implementing compute() and name().
+ *
+ * @param A  Input matrix A (M×K), device data already populated.
+ * @param B  Input matrix B (K×N), device data already populated.
+ * @param C  Output matrix C (M×N), overwritten on each call.
+ * @param M  Rows of A.
+ * @param N  Cols of B.
+ * @param K  Inner dimension.
+ * @return   BenchmarkResult with kernel name, average time, and GFLOPS.
+ */
 template <typename T, template<typename> class KernelType>
 BenchmarkResult benchmarkKernel(const Matrix<T>& A, const Matrix<T>& B, Matrix<T>& C, size_t M, size_t N, size_t K)
 {
     KernelType<T> kernel;
 
-    // Warm-up runs
+    // Warm-up runs: ensure GPU is at steady-state clock and caches are primed.
     for (int i = 0; i < 3; ++i) {
         kernel.compute(A, B, C);
     }
@@ -40,11 +81,24 @@ BenchmarkResult benchmarkKernel(const Matrix<T>& A, const Matrix<T>& B, Matrix<T
     }
 
     float avg_time = total_time / num_runs;
+    // 2 FLOPs per inner-product element (multiply + add), divided by time in ns.
     double gflops = (2.0 * M * N * K) / (avg_time * 1e6);
 
     return {kernel.name(), avg_time, gflops};
 }
 
+/**
+ * @brief Benchmarks all kernels for a given M×K × K×N matrix multiplication.
+ *
+ * Allocates matrices, initializes with random uniform data, transfers to the
+ * device, then runs and times all kernels. Prints a formatted table with timing,
+ * GFLOPS, and speedup relative to the slowest kernel. Highlights the fastest.
+ *
+ * @tparam T  Element type (e.g., float).
+ * @param M   Rows of output matrix C.
+ * @param N   Columns of output matrix C.
+ * @param K   Inner dimension (cols of A, rows of B).
+ */
 template <typename T>
 void runComparison(size_t M, size_t N, size_t K)
 {
@@ -91,6 +145,12 @@ void runComparison(size_t M, size_t N, size_t K)
     results.push_back(benchmarkKernel<T, Tiling1DKernel>(A, B, C, M, N, K));
     std::cout << "  " << Colors::GREEN << "✓ " << Colors::RESET
               << results.back().kernel_name << " completed" << std::endl;
+    results.push_back(benchmarkKernel<T, Tiling1DKernelAsync>(A, B, C, M, N, K));
+    std::cout << "  " << Colors::GREEN << "✓ " << Colors::RESET
+              << results.back().kernel_name << " completed" << std::endl;
+    results.push_back(benchmarkKernel<T, Tiling2DKernel>(A, B, C, M, N, K));
+    std::cout << "  " << Colors::GREEN << "✓ " << Colors::RESET
+              << results.back().kernel_name << " completed" << std::endl;
 
     // Print results table
     std::cout << "\n" << Colors::BOLD_MAGENTA << "----------------------------------------"
@@ -105,7 +165,7 @@ void runComparison(size_t M, size_t N, size_t K)
     std::cout << Colors::BOLD_MAGENTA << "----------------------------------------"
               << Colors::RESET << std::endl;
 
-    // Find baseline (slowest kernel)
+    // Find baseline (slowest kernel) for speedup calculation.
     float baseline_time = 0.0f;
     for (const auto& result : results) {
         if (result.time_ms > baseline_time) {
@@ -151,6 +211,12 @@ void runComparison(size_t M, size_t N, size_t K)
               << fastest.gflops << " GFLOPS" << Colors::RESET << ")" << std::endl;
 }
 
+/**
+ * @brief Entry point: prints device info and runs all benchmark configurations.
+ *
+ * Benchmarks square sizes (512, 1024, 2048) and two rectangular configurations
+ * to stress-test kernels with non-square tiles and varying aspect ratios.
+ */
 int main()
 {
     printDeviceInfo();

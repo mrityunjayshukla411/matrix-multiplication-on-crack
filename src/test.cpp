@@ -6,6 +6,8 @@
 #include "kernels/UncoalescedKernel.h"
 #include "kernels/SharedMemCachingKernel.h"
 #include "kernels/Tiling1DKernel.h"
+#include "kernels/Tiling1DKernelAsync.h"
+#include "kernels/Tiling2DKernel.h"
 #include "utils/CudaUtils.h"
 #include "utils/CpuMatMul.h"
 #include "utils/TestUtils.h"
@@ -111,6 +113,23 @@ void runAllTests() {
         if (result) passed++;
     }
 
+    std::cout << "\n" << Colors::BOLD_YELLOW << "--- Testing Tiling1DKernelAsync ---"
+              << Colors::RESET << std::endl;
+    for (const auto& tc : test_cases) {
+        total++;
+        bool result = testKernel<T, Tiling1DKernelAsync>(tc.name, tc.M, tc.N, tc.K);
+        TestUtils<T>::printTestResult(tc.name, result);
+        if (result) passed++;
+    }
+
+    std::cout << "\n" << Colors::BOLD_YELLOW << "--- Testing Tiling2DKernel ---"
+              << Colors::RESET << std::endl;
+    for (const auto& tc : test_cases) {
+        total++;
+        bool result = testKernel<T, Tiling2DKernel>(tc.name, tc.M, tc.N, tc.K);
+        TestUtils<T>::printTestResult(tc.name, result);
+        if (result) passed++;
+    }
 
     // Print summary
     std::cout << "\n" << Colors::BOLD_CYAN << "========================================"

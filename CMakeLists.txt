@@ -13,6 +13,8 @@ add_executable(matmul_benchmark
     src/kernels/UncoalescedKernel.cu
     src/kernels/SharedMemCachingKernel.cu
     src/kernels/Tiling1DKernel.cu
+    src/kernels/Tiling1DKernelAsync.cu
+    src/kernels/Tiling2DKernel.cu
 )
 
 target_compile_options(matmul_benchmark PRIVATE
@@ -29,6 +31,8 @@ add_executable(matmul_test
     src/kernels/UncoalescedKernel.cu
     src/kernels/SharedMemCachingKernel.cu
     src/kernels/Tiling1DKernel.cu
+    src/kernels/Tiling1DKernelAsync.cu
+    src/kernels/Tiling2DKernel.cu
 )
 
 target_compile_options(matmul_test PRIVATE

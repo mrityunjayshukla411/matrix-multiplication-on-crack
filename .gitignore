@@ -2,6 +2,7 @@ build/
 logs/
 results/
 .vscode/
+.claude/
 
 CMakeCache.txt
 CMakeFiles
